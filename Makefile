@@ -31,6 +31,7 @@
 
 CFLAGS_COMMON = \
 	-D_XOPEN_SOURCE \
+	-D_POSIX_C_SOURCE=200809L \
 	-Wall \
 	-Wextra \
 	-Wcast-align \

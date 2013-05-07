@@ -32,6 +32,7 @@
 #include <sys/time.h>
 
 #include <signal.h>
+#include <time.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -44,7 +45,9 @@ static void signalHandler(int signo) {
 }
 
 static int setupSignals() {
-	struct sigaction act = {0};
+	struct sigaction act;
+
+	memset(&act, 0, sizeof(struct sigaction));
 
 	/* Use the sa_sigaction field because the handles has two additional parameters */
 	act.sa_handler = signalHandler;
@@ -53,66 +56,146 @@ static int setupSignals() {
 
 	if (sigaction(SIGTERM, &act, NULL) == -1) {
 		perror("could not register SIGTERM");
-		return -1;
+		return 0;
 	}
 
 	if (sigaction(SIGHUP, &act, NULL) == -1) {
 		perror("could not register SIGHUP");
-		return -1;
+		return 0;
 	}
 
 	if (sigaction(SIGINT, &act, NULL) == -1) {
 		perror("could not register SIGINT");
-		return -1;
+		return 0;
 	}
 
 	if (sigaction(SIGQUIT, &act, NULL) == -1) {
 		perror("could not register SIGQUIT");
-		return -1;
+		return 0;
 	}
 
-	return 0;
+	return 1;
+}
+
+/**
+ * milliseconds over 1000 will be ignored
+ */
+static void delay(time_t sec, long msec) {
+	struct timespec sleep;
+
+	sleep.tv_sec  = sec;
+	sleep.tv_nsec = (msec % 1000) * 1000 * 1000;
+
+	if (nanosleep(&sleep, NULL) == -1) {
+		perror("nanosleep error, exiting: ");
+
+		working = 0;
+	}
+}
+
+/**
+ * returns 0 for failure, anything else for error
+ * (see documentation of XGrabPointer)
+ */
+static int grabPointer(Display *dpy, Window win, unsigned int mask) {
+	int rc;
+
+	while (1) {
+		/**
+		 * owner_events <True|False> seems to have little detectable influence
+		 * confine_to_window <win|None> seems to have little detectable influence
+		 *
+		 * TODO: try cursor = ?
+		 * TODO: try time = ?
+		 */
+		rc = XGrabPointer(dpy, win, False, mask, GrabModeAsync, GrabModeAsync, win, None, CurrentTime);
+
+		switch (rc) {
+			/* success case, fall through */
+			case GrabSuccess:
+				printf("succesfully grabbed mouse pointer\n");
+				return 1;
+
+			/* error cases after which we should exit */
+			case AlreadyGrabbed:
+				fprintf(stderr, "XGrabPointer: already grabbed mouse pointer, retrying with delay\n");
+
+				delay(0, 500);
+
+				break;
+
+			case GrabFrozen:
+				fprintf(stderr, "XGrabPointer: grab was frozen, exiting\n");
+				return 0;
+
+			case GrabInvalidTime:
+				fprintf(stderr, "XGrabPointer: invalid time, exiting\n");
+				return 0;
+
+			default:
+				fprintf(stderr, "XGrabPointer: could not grab mouse pointer (%d), exiting\n", rc);
+				return 0;
+		}
+	}
 }
 
 static void waitForMotion(Display *dpy, Window win, int timeout) {
 	int ready = 0;
 	int xfd   = ConnectionNumber(dpy);
-	long mask = PointerMotionMask;
+
+	unsigned int mask = PointerMotionMask | ButtonPressMask; /* ButtonPressMask */
 
 	fd_set fds;
-	struct timeval tv;
+	/* struct timeval tv; */
 
 	XEvent event;
 
 	working = 1;
 
-	if (setupSignals() == -1) {
+	if (!setupSignals()) {
 		fprintf(stderr, "could not register signals, program will not exit cleanly\n");
 	}
-
-	XSelectInput(dpy, win, mask);
 
 	/**
 	 * flush the commands we just sent because we're not going to use a
 	 * conventional XNextEvent-based loop (which would flush automatically)
 	 */
-	XFlush(dpy);
-
-	printf("flushed!\n");
+	/* XFlush(dpy); */
 
 	while (working) {
+		if (!grabPointer(dpy, win, mask)) {
+			return;
+		}
+
 		/* add the X11 fd to the fdset so we can poll/select on it */
 		FD_ZERO(&fds);
 		FD_SET(xfd, &fds);
 
 		/* poll with a timeout */
-		tv.tv_usec = 0;
-		tv.tv_sec  = timeout;
+		/*
+		tv.tv_usec   = 0;
+		tv.tv_sec = timeout;
+		*/
 
-		ready = select(xfd + 1, &fds, NULL, NULL, &tv);
+		ready = select(xfd + 1, &fds, NULL, NULL, NULL);
 
 		if (ready > 0) {
 			printf("event received\n");
+
+			/* event received, release mouse, sleep, and try to grab again */
+			XUngrabPointer(dpy, CurrentTime);
+
+			/* drain events */
+			while (XPending(dpy)) {
+				/* XNextEvent(dpy, &event); */
+				XMaskEvent(dpy, mask, &event);
+
+				printf("draining event\n");
+			}
+
+			printf("ungrabbing and sleeping\n");
+
+			delay(timeout, 0);
 		}
 		else if (ready == 0) {
 			printf("timeout\n");
@@ -122,14 +205,9 @@ static void waitForMotion(Display *dpy, Window win, int timeout) {
 
 			working = 0;
 		}
-
-		/* drain events */
-		while (XPending(dpy)) {
-			XNextEvent(dpy, &event);
-
-			printf("-> could start processing event...\n");
-		}
 	}
+
+	XUngrabPointer(dpy, CurrentTime);
 }
 
 int main(void) {
