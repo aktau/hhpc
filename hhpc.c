@@ -93,11 +93,24 @@ static void delay(time_t sec, long msec) {
 	}
 }
 
+static Cursor nullCursor(Display *dpy, Drawable dw) {
+	XColor color = { 0 };
+	Pixmap pixmap;
+	Cursor cursor;
+
+	pixmap = XCreatePixmap(dpy, dw, 1, 1, 1);
+	cursor = XCreatePixmapCursor(dpy, pixmap, pixmap, &color, &color, 0, 0);
+
+	/* XDefineCursor(dpy, dw, cursor); */
+	XFreePixmap(dpy, pixmap);
+
+	return cursor;
+}
+
 /**
- * returns 0 for failure, anything else for error
- * (see documentation of XGrabPointer)
+ * returns 0 for failure, 1 for success
  */
-static int grabPointer(Display *dpy, Window win, unsigned int mask) {
+static int grabAndHidePointer(Display *dpy, Window win, unsigned int mask) {
 	int rc;
 
 	while (1) {
@@ -108,7 +121,7 @@ static int grabPointer(Display *dpy, Window win, unsigned int mask) {
 		 * TODO: try cursor = ?
 		 * TODO: try time = ?
 		 */
-		rc = XGrabPointer(dpy, win, False, mask, GrabModeAsync, GrabModeAsync, win, None, CurrentTime);
+		rc = XGrabPointer(dpy, win, False, mask, GrabModeAsync, GrabModeAsync, win, nullCursor(dpy, win), CurrentTime);
 
 		switch (rc) {
 			/* success case, fall through */
@@ -163,7 +176,7 @@ static void waitForMotion(Display *dpy, Window win, int timeout) {
 	/* XFlush(dpy); */
 
 	while (working) {
-		if (!grabPointer(dpy, win, mask)) {
+		if (!grabAndHidePointer(dpy, win, mask)) {
 			return;
 		}
 
