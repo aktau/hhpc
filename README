@@ -1,0 +1,8 @@
+hhpc
+====
+
+This is a clone of the hhpc program from *xmonad-utils*. I found that after a while for some reason
+hhpc stopped hiding my mouse pointer, so I recreated it in C so as to be able to debug it better.
+
+I guess one of the main advantages would be that you don't need haskell-platform to compile and run it,
+just gcc, the X11 development libraries, pkg-config and make.
