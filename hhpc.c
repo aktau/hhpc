@@ -33,10 +33,14 @@
 
 #include <signal.h>
 #include <time.h>
+#include <getopt.h>
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+
+static int gIdleTimeout = 1;
+static int gVerbose     = 0;
 
 static sig_atomic_t working;
 
@@ -87,9 +91,7 @@ static void delay(time_t sec, long msec) {
 	sleep.tv_nsec = (msec % 1000) * 1000 * 1000;
 
 	if (nanosleep(&sleep, NULL) == -1) {
-		perror("nanosleep error, exiting: ");
-
-		working = 0;
+		signalHandler(0);
 	}
 }
 
@@ -125,11 +127,11 @@ static int grabPointer(Display *dpy, Window win, Cursor cursor, unsigned int mas
 
 		switch (rc) {
 			case GrabSuccess:
-				printf("succesfully grabbed mouse pointer\n");
+				if (gVerbose) printf("succesfully grabbed mouse pointer\n");
 				return 1;
 
 			case AlreadyGrabbed:
-				fprintf(stderr, "XGrabPointer: already grabbed mouse pointer, retrying with delay\n");
+				if (gVerbose) fprintf(stderr, "XGrabPointer: already grabbed mouse pointer, retrying with delay\n");
 
 				delay(0, 500);
 
@@ -179,7 +181,7 @@ static void waitForMotion(Display *dpy, Window win, int timeout) {
 		ready = select(xfd + 1, &fds, NULL, NULL, NULL);
 
 		if (ready > 0) {
-			printf("event received\n");
+			if (gVerbose) printf("event received\n");
 
 			/* event received, release mouse, sleep, and try to grab again */
 			XUngrabPointer(dpy, CurrentTime);
@@ -189,15 +191,15 @@ static void waitForMotion(Display *dpy, Window win, int timeout) {
 				/* XNextEvent(dpy, &event); */
 				XMaskEvent(dpy, mask, &event);
 
-				printf("draining event\n");
+				if (gVerbose) printf("draining event\n");
 			}
 
-			printf("ungrabbing and sleeping\n");
+			if (gVerbose) printf("ungrabbing and sleeping\n");
 
 			delay(timeout, 0);
 		}
 		else if (ready == 0) {
-			printf("timeout\n");
+			if (gVerbose) printf("timeout\n");
 		}
 		else {
 			perror("error while select()'ing");
@@ -210,19 +212,41 @@ static void waitForMotion(Display *dpy, Window win, int timeout) {
 	XFreeCursor(dpy, emptyCursor);
 }
 
-int main(void) {
-  Display *dpy = XOpenDisplay(NULL);
-  int scr = DefaultScreen(dpy);
+static int parseOptions(int argc, char *argv[]) {
+	int option = 0;
 
-  Window rootwin = RootWindow(dpy, scr);
+	while ((option = getopt(argc, argv, "i:v")) != -1) {
+		switch (option) {
+			case 'i': gIdleTimeout = atoi(optarg); break;
+			case 'v': gVerbose = 1; break;
+			default: return 0;
+		}
+	}
 
-  printf("Got root window, screen = %d, display = %p, rootwin = %d\n", scr, (void *) dpy, (int) rootwin);
+	return 1;
+}
 
-  waitForMotion(dpy, rootwin, 1);
+static void usage() {
+	printf("hhpc [-i] seconds [-v]\n");
+}
 
-  XCloseDisplay(dpy);
+int main(int argc, char *argv[]) {
+	if (!parseOptions(argc, argv)) {
+		usage();
 
-  printf("closed\n");
+		return 1;
+	}
 
-  return 0;
+	Display *dpy   = XOpenDisplay(NULL);
+	int scr        = DefaultScreen(dpy);
+	Window rootwin = RootWindow(dpy, scr);
+
+	if (gVerbose) printf("got root window, screen = %d, display = %p, rootwin = %d\n", scr, (void *) dpy, (int) rootwin);
+
+	waitForMotion(dpy, rootwin, gIdleTimeout);
+
+	XCloseDisplay(dpy);
+
+	if (gVerbose) printf("resources released, exiting...\n");
+	return 0;
 }
