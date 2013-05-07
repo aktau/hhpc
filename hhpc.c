@@ -94,8 +94,11 @@ static void delay(time_t sec, long msec) {
 }
 
 /**
- * generats an empty cursor,
+ * generates an empty cursor,
  * don't forget to destroy the cursor with XFreeCursor
+ *
+ * do we need to use XAllocColor or will it always just work
+ * as I've observed?
  */
 static Cursor nullCursor(Display *dpy, Drawable dw) {
 	XColor color  = { 0 };
@@ -113,6 +116,10 @@ static Cursor nullCursor(Display *dpy, Drawable dw) {
 static int grabPointer(Display *dpy, Window win, Cursor cursor, unsigned int mask) {
 	int rc;
 
+	/**
+	 * retry until we actually get the pointer (with a suitable delay)
+	 * or we get an error we can't recover from.
+	 */
 	while (1) {
 		rc = XGrabPointer(dpy, win, False, mask, GrabModeAsync, GrabModeAsync, win, cursor, CurrentTime);
 
