@@ -45,54 +45,54 @@ static int gVerbose     = 0;
 static sig_atomic_t working;
 
 static void signalHandler(int signo) {
-	working = 0;
+    working = 0;
 }
 
 static int setupSignals() {
-	struct sigaction act;
+    struct sigaction act;
 
-	memset(&act, 0, sizeof(struct sigaction));
+    memset(&act, 0, sizeof(struct sigaction));
 
-	/* Use the sa_sigaction field because the handles has two additional parameters */
-	act.sa_handler = signalHandler;
-	act.sa_flags   = 0;
-	sigemptyset(&act.sa_mask);
+    /* Use the sa_sigaction field because the handles has two additional parameters */
+    act.sa_handler = signalHandler;
+    act.sa_flags   = 0;
+    sigemptyset(&act.sa_mask);
 
-	if (sigaction(SIGTERM, &act, NULL) == -1) {
-		perror("could not register SIGTERM");
-		return 0;
-	}
+    if (sigaction(SIGTERM, &act, NULL) == -1) {
+        perror("could not register SIGTERM");
+        return 0;
+    }
 
-	if (sigaction(SIGHUP, &act, NULL) == -1) {
-		perror("could not register SIGHUP");
-		return 0;
-	}
+    if (sigaction(SIGHUP, &act, NULL) == -1) {
+        perror("could not register SIGHUP");
+        return 0;
+    }
 
-	if (sigaction(SIGINT, &act, NULL) == -1) {
-		perror("could not register SIGINT");
-		return 0;
-	}
+    if (sigaction(SIGINT, &act, NULL) == -1) {
+        perror("could not register SIGINT");
+        return 0;
+    }
 
-	if (sigaction(SIGQUIT, &act, NULL) == -1) {
-		perror("could not register SIGQUIT");
-		return 0;
-	}
+    if (sigaction(SIGQUIT, &act, NULL) == -1) {
+        perror("could not register SIGQUIT");
+        return 0;
+    }
 
-	return 1;
+    return 1;
 }
 
 /**
  * milliseconds over 1000 will be ignored
  */
 static void delay(time_t sec, long msec) {
-	struct timespec sleep;
+    struct timespec sleep;
 
-	sleep.tv_sec  = sec;
-	sleep.tv_nsec = (msec % 1000) * 1000 * 1000;
+    sleep.tv_sec  = sec;
+    sleep.tv_nsec = (msec % 1000) * 1000 * 1000;
 
-	if (nanosleep(&sleep, NULL) == -1) {
-		signalHandler(0);
-	}
+    if (nanosleep(&sleep, NULL) == -1) {
+        signalHandler(0);
+    }
 }
 
 /**
@@ -103,150 +103,150 @@ static void delay(time_t sec, long msec) {
  * as I've observed?
  */
 static Cursor nullCursor(Display *dpy, Drawable dw) {
-	XColor color  = { 0 };
-	Pixmap pixmap = XCreatePixmap(dpy, dw, 1, 1, 1);
-	Cursor cursor = XCreatePixmapCursor(dpy, pixmap, pixmap, &color, &color, 0, 0);
+    XColor color  = { 0 };
+    Pixmap pixmap = XCreatePixmap(dpy, dw, 1, 1, 1);
+    Cursor cursor = XCreatePixmapCursor(dpy, pixmap, pixmap, &color, &color, 0, 0);
 
-	XFreePixmap(dpy, pixmap);
+    XFreePixmap(dpy, pixmap);
 
-	return cursor;
+    return cursor;
 }
 
 /**
  * returns 0 for failure, 1 for success
  */
 static int grabPointer(Display *dpy, Window win, Cursor cursor, unsigned int mask) {
-	int rc;
+    int rc;
 
-	/**
-	 * retry until we actually get the pointer (with a suitable delay)
-	 * or we get an error we can't recover from.
-	 */
-	while (1) {
-		rc = XGrabPointer(dpy, win, False, mask, GrabModeAsync, GrabModeAsync, win, cursor, CurrentTime);
+    /**
+     * retry until we actually get the pointer (with a suitable delay)
+     * or we get an error we can't recover from.
+     */
+    while (1) {
+        rc = XGrabPointer(dpy, win, False, mask, GrabModeAsync, GrabModeAsync, win, cursor, CurrentTime);
 
-		switch (rc) {
-			case GrabSuccess:
-				if (gVerbose) printf("succesfully grabbed mouse pointer\n");
-				return 1;
+        switch (rc) {
+            case GrabSuccess:
+                if (gVerbose) printf("succesfully grabbed mouse pointer\n");
+                return 1;
 
-			case AlreadyGrabbed:
-				if (gVerbose) fprintf(stderr, "XGrabPointer: already grabbed mouse pointer, retrying with delay\n");
+            case AlreadyGrabbed:
+                if (gVerbose) fprintf(stderr, "XGrabPointer: already grabbed mouse pointer, retrying with delay\n");
 
-				delay(0, 500);
+                delay(0, 500);
 
-				break;
+                break;
 
-			case GrabFrozen:
-				fprintf(stderr, "XGrabPointer: grab was frozen, exiting\n");
-				return 0;
+            case GrabFrozen:
+                fprintf(stderr, "XGrabPointer: grab was frozen, exiting\n");
+                return 0;
 
-			case GrabInvalidTime:
-				fprintf(stderr, "XGrabPointer: invalid time, exiting\n");
-				return 0;
+            case GrabInvalidTime:
+                fprintf(stderr, "XGrabPointer: invalid time, exiting\n");
+                return 0;
 
-			default:
-				fprintf(stderr, "XGrabPointer: could not grab mouse pointer (%d), exiting\n", rc);
-				return 0;
-		}
-	}
+            default:
+                fprintf(stderr, "XGrabPointer: could not grab mouse pointer (%d), exiting\n", rc);
+                return 0;
+        }
+    }
 }
 
 static void waitForMotion(Display *dpy, Window win, int timeout) {
-	int ready = 0;
-	int xfd   = ConnectionNumber(dpy);
+    int ready = 0;
+    int xfd   = ConnectionNumber(dpy);
 
-	unsigned int mask = PointerMotionMask | ButtonPressMask; /* ButtonPressMask */
+    unsigned int mask = PointerMotionMask | ButtonPressMask; /* ButtonPressMask */
 
-	fd_set fds;
+    fd_set fds;
 
-	XEvent event;
-	Cursor emptyCursor = nullCursor(dpy, win);
+    XEvent event;
+    Cursor emptyCursor = nullCursor(dpy, win);
 
-	working = 1;
+    working = 1;
 
-	if (!setupSignals()) {
-		fprintf(stderr, "could not register signals, program will not exit cleanly\n");
-	}
+    if (!setupSignals()) {
+        fprintf(stderr, "could not register signals, program will not exit cleanly\n");
+    }
 
-	while (working) {
-		if (!grabPointer(dpy, win, emptyCursor, mask)) {
-			return;
-		}
+    while (working) {
+        if (!grabPointer(dpy, win, emptyCursor, mask)) {
+            return;
+        }
 
-		/* add the X11 fd to the fdset so we can poll/select on it */
-		FD_ZERO(&fds);
-		FD_SET(xfd, &fds);
+        /* add the X11 fd to the fdset so we can poll/select on it */
+        FD_ZERO(&fds);
+        FD_SET(xfd, &fds);
 
-		ready = select(xfd + 1, &fds, NULL, NULL, NULL);
+        ready = select(xfd + 1, &fds, NULL, NULL, NULL);
 
-		if (ready > 0) {
-			if (gVerbose) printf("event received\n");
+        if (ready > 0) {
+            if (gVerbose) printf("event received\n");
 
-			/* event received, release mouse, sleep, and try to grab again */
-			XUngrabPointer(dpy, CurrentTime);
+            /* event received, release mouse, sleep, and try to grab again */
+            XUngrabPointer(dpy, CurrentTime);
 
-			/* drain events */
-			while (XPending(dpy)) {
-				/* XNextEvent(dpy, &event); */
-				XMaskEvent(dpy, mask, &event);
+            /* drain events */
+            while (XPending(dpy)) {
+                /* XNextEvent(dpy, &event); */
+                XMaskEvent(dpy, mask, &event);
 
-				if (gVerbose) printf("draining event\n");
-			}
+                if (gVerbose) printf("draining event\n");
+            }
 
-			if (gVerbose) printf("ungrabbing and sleeping\n");
+            if (gVerbose) printf("ungrabbing and sleeping\n");
 
-			delay(timeout, 0);
-		}
-		else if (ready == 0) {
-			if (gVerbose) printf("timeout\n");
-		}
-		else {
-			perror("error while select()'ing");
+            delay(timeout, 0);
+        }
+        else if (ready == 0) {
+            if (gVerbose) printf("timeout\n");
+        }
+        else {
+            perror("error while select()'ing");
 
-			working = 0;
-		}
-	}
+            working = 0;
+        }
+    }
 
-	XUngrabPointer(dpy, CurrentTime);
-	XFreeCursor(dpy, emptyCursor);
+    XUngrabPointer(dpy, CurrentTime);
+    XFreeCursor(dpy, emptyCursor);
 }
 
 static int parseOptions(int argc, char *argv[]) {
-	int option = 0;
+    int option = 0;
 
-	while ((option = getopt(argc, argv, "i:v")) != -1) {
-		switch (option) {
-			case 'i': gIdleTimeout = atoi(optarg); break;
-			case 'v': gVerbose = 1; break;
-			default: return 0;
-		}
-	}
+    while ((option = getopt(argc, argv, "i:v")) != -1) {
+        switch (option) {
+            case 'i': gIdleTimeout = atoi(optarg); break;
+            case 'v': gVerbose = 1; break;
+            default: return 0;
+        }
+    }
 
-	return 1;
+    return 1;
 }
 
 static void usage() {
-	printf("hhpc [-i] seconds [-v]\n");
+    printf("hhpc [-i] seconds [-v]\n");
 }
 
 int main(int argc, char *argv[]) {
-	if (!parseOptions(argc, argv)) {
-		usage();
+    if (!parseOptions(argc, argv)) {
+        usage();
 
-		return 1;
-	}
+        return 1;
+    }
 
-	Display *dpy   = XOpenDisplay(NULL);
-	int scr        = DefaultScreen(dpy);
-	Window rootwin = RootWindow(dpy, scr);
+    Display *dpy   = XOpenDisplay(NULL);
+    int scr        = DefaultScreen(dpy);
+    Window rootwin = RootWindow(dpy, scr);
 
-	if (gVerbose) printf("got root window, screen = %d, display = %p, rootwin = %d\n", scr, (void *) dpy, (int) rootwin);
+    if (gVerbose) printf("got root window, screen = %d, display = %p, rootwin = %d\n", scr, (void *) dpy, (int) rootwin);
 
-	waitForMotion(dpy, rootwin, gIdleTimeout);
+    waitForMotion(dpy, rootwin, gIdleTimeout);
 
-	XCloseDisplay(dpy);
+    XCloseDisplay(dpy);
 
-	if (gVerbose) printf("resources released, exiting...\n");
-	return 0;
+    if (gVerbose) printf("resources released, exiting...\n");
+    return 0;
 }
