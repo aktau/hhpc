@@ -93,15 +93,15 @@ static void delay(time_t sec, long msec) {
 	}
 }
 
+/**
+ * generats an empty cursor,
+ * don't forget to destroy the cursor with XFreeCursor
+ */
 static Cursor nullCursor(Display *dpy, Drawable dw) {
-	XColor color = { 0 };
-	Pixmap pixmap;
-	Cursor cursor;
+	XColor color  = { 0 };
+	Pixmap pixmap = XCreatePixmap(dpy, dw, 1, 1, 1);
+	Cursor cursor = XCreatePixmapCursor(dpy, pixmap, pixmap, &color, &color, 0, 0);
 
-	pixmap = XCreatePixmap(dpy, dw, 1, 1, 1);
-	cursor = XCreatePixmapCursor(dpy, pixmap, pixmap, &color, &color, 0, 0);
-
-	/* XDefineCursor(dpy, dw, cursor); */
 	XFreePixmap(dpy, pixmap);
 
 	return cursor;
@@ -110,26 +110,17 @@ static Cursor nullCursor(Display *dpy, Drawable dw) {
 /**
  * returns 0 for failure, 1 for success
  */
-static int grabAndHidePointer(Display *dpy, Window win, unsigned int mask) {
+static int grabPointer(Display *dpy, Window win, Cursor cursor, unsigned int mask) {
 	int rc;
 
 	while (1) {
-		/**
-		 * owner_events <True|False> seems to have little detectable influence
-		 * confine_to_window <win|None> seems to have little detectable influence
-		 *
-		 * TODO: try cursor = ?
-		 * TODO: try time = ?
-		 */
-		rc = XGrabPointer(dpy, win, False, mask, GrabModeAsync, GrabModeAsync, win, nullCursor(dpy, win), CurrentTime);
+		rc = XGrabPointer(dpy, win, False, mask, GrabModeAsync, GrabModeAsync, win, cursor, CurrentTime);
 
 		switch (rc) {
-			/* success case, fall through */
 			case GrabSuccess:
 				printf("succesfully grabbed mouse pointer\n");
 				return 1;
 
-			/* error cases after which we should exit */
 			case AlreadyGrabbed:
 				fprintf(stderr, "XGrabPointer: already grabbed mouse pointer, retrying with delay\n");
 
@@ -159,9 +150,9 @@ static void waitForMotion(Display *dpy, Window win, int timeout) {
 	unsigned int mask = PointerMotionMask | ButtonPressMask; /* ButtonPressMask */
 
 	fd_set fds;
-	/* struct timeval tv; */
 
 	XEvent event;
+	Cursor emptyCursor = nullCursor(dpy, win);
 
 	working = 1;
 
@@ -169,26 +160,14 @@ static void waitForMotion(Display *dpy, Window win, int timeout) {
 		fprintf(stderr, "could not register signals, program will not exit cleanly\n");
 	}
 
-	/**
-	 * flush the commands we just sent because we're not going to use a
-	 * conventional XNextEvent-based loop (which would flush automatically)
-	 */
-	/* XFlush(dpy); */
-
 	while (working) {
-		if (!grabAndHidePointer(dpy, win, mask)) {
+		if (!grabPointer(dpy, win, emptyCursor, mask)) {
 			return;
 		}
 
 		/* add the X11 fd to the fdset so we can poll/select on it */
 		FD_ZERO(&fds);
 		FD_SET(xfd, &fds);
-
-		/* poll with a timeout */
-		/*
-		tv.tv_usec   = 0;
-		tv.tv_sec = timeout;
-		*/
 
 		ready = select(xfd + 1, &fds, NULL, NULL, NULL);
 
@@ -221,6 +200,7 @@ static void waitForMotion(Display *dpy, Window win, int timeout) {
 	}
 
 	XUngrabPointer(dpy, CurrentTime);
+	XFreeCursor(dpy, emptyCursor);
 }
 
 int main(void) {
