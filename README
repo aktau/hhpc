@@ -5,6 +5,27 @@ This is a clone of the hhp program from xmonad-utils. I found that after a while
 
 I guess one of the main advantages would be that you don't need haskell-platform to compile and run it, just gcc, the X11 development libraries, pkg-config and make.
 
+Dependencies
+============
+
+A running X server
+
+Build dependencies
+==================
+
+- X.org development files
+- A gcc-compatible compiler (haven't tested if the flags works with other compilers)
+- pkg-config
+
+Building
+========
+
+after cloning this repo, cd into its directory and perform:
+
+$ make release
+
+if everything goes well, there should appear a hhpc executable in the current directory
+
 License (3-clause BSD)
 ======================
 
