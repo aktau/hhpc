@@ -31,9 +31,48 @@
 #include <sys/select.h>
 #include <sys/time.h>
 
+#include <signal.h>
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+
+static sig_atomic_t working;
+
+static void signalHandler(int signo) {
+	working = 0;
+}
+
+static int setupSignals() {
+	struct sigaction act = {0};
+
+	/* Use the sa_sigaction field because the handles has two additional parameters */
+	act.sa_handler = signalHandler;
+	act.sa_flags   = 0;
+	sigemptyset(&act.sa_mask);
+
+	if (sigaction(SIGTERM, &act, NULL) == -1) {
+		perror("could not register SIGTERM");
+		return -1;
+	}
+
+	if (sigaction(SIGHUP, &act, NULL) == -1) {
+		perror("could not register SIGHUP");
+		return -1;
+	}
+
+	if (sigaction(SIGINT, &act, NULL) == -1) {
+		perror("could not register SIGINT");
+		return -1;
+	}
+
+	if (sigaction(SIGQUIT, &act, NULL) == -1) {
+		perror("could not register SIGQUIT");
+		return -1;
+	}
+
+	return 0;
+}
 
 static void waitForMotion(Display *dpy, Window win, int timeout) {
 	int ready = 0;
@@ -45,6 +84,12 @@ static void waitForMotion(Display *dpy, Window win, int timeout) {
 
 	XEvent event;
 
+	working = 1;
+
+	if (setupSignals() == -1) {
+		fprintf(stderr, "could not register signals, program will not exit cleanly\n");
+	}
+
 	XSelectInput(dpy, win, mask);
 
 	/**
@@ -55,7 +100,7 @@ static void waitForMotion(Display *dpy, Window win, int timeout) {
 
 	printf("flushed!\n");
 
-	while (1) {
+	while (working) {
 		/* add the X11 fd to the fdset so we can poll/select on it */
 		FD_ZERO(&fds);
 		FD_SET(xfd, &fds);
@@ -74,6 +119,8 @@ static void waitForMotion(Display *dpy, Window win, int timeout) {
 		}
 		else {
 			perror("error while select()'ing");
+
+			working = 0;
 		}
 
 		/* drain events */
@@ -96,6 +143,8 @@ int main(void) {
   waitForMotion(dpy, rootwin, 1);
 
   XCloseDisplay(dpy);
+
+  printf("closed\n");
 
   return 0;
 }

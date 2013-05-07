@@ -29,7 +29,9 @@
 # $^ The names of all the prerequisite files (space separated)
 # $* The stem (the bit which matches the % wildcard in the rule definition.
 
-CFLAGS_COMMON = -Wall \
+CFLAGS_COMMON = \
+	-D_XOPEN_SOURCE \
+	-Wall \
 	-Wextra \
 	-Wcast-align \
 	-Wcast-qual \
