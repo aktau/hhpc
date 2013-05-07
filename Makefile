@@ -63,13 +63,10 @@ debug: CFLAGS = $(CFLAGS_COMMON) \
 debug: $(EXECUTABLE)
 
 release: CFLAGS = $(CFLAGS_COMMON) \
-	-g \
+	-s \
 	-O2 \
-	-march=core2 \
-	-mtune=native \
-	-ftree-vectorize \
-	-flto \
-	-DDEBUG
+	-march=native \
+	-ftree-vectorize
 release: $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJECTS)
