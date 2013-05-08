@@ -59,22 +59,22 @@ static int setupSignals() {
     sigemptyset(&act.sa_mask);
 
     if (sigaction(SIGTERM, &act, NULL) == -1) {
-        perror("could not register SIGTERM");
+        perror("hhpc: could not register SIGTERM");
         return 0;
     }
 
     if (sigaction(SIGHUP, &act, NULL) == -1) {
-        perror("could not register SIGHUP");
+        perror("hhpc: could not register SIGHUP");
         return 0;
     }
 
     if (sigaction(SIGINT, &act, NULL) == -1) {
-        perror("could not register SIGINT");
+        perror("hhpc: could not register SIGINT");
         return 0;
     }
 
     if (sigaction(SIGQUIT, &act, NULL) == -1) {
-        perror("could not register SIGQUIT");
+        perror("hhpc: could not register SIGQUIT");
         return 0;
     }
 
@@ -127,26 +127,26 @@ static int grabPointer(Display *dpy, Window win, Cursor cursor, unsigned int mas
 
         switch (rc) {
             case GrabSuccess:
-                if (gVerbose) printf("succesfully grabbed mouse pointer\n");
+                if (gVerbose) printf("hhpc: succesfully grabbed mouse pointer\n");
                 return 1;
 
             case AlreadyGrabbed:
-                if (gVerbose) fprintf(stderr, "XGrabPointer: already grabbed mouse pointer, retrying with delay\n");
+                if (gVerbose) fprintf(stderr, "hhpc: XGrabPointer: already grabbed mouse pointer, retrying with delay\n");
 
                 delay(0, 500);
 
                 break;
 
             case GrabFrozen:
-                fprintf(stderr, "XGrabPointer: grab was frozen, exiting\n");
+                fprintf(stderr, "hhpc: XGrabPointer: grab was frozen, exiting\n");
                 return 0;
 
             case GrabInvalidTime:
-                fprintf(stderr, "XGrabPointer: invalid time, exiting\n");
+                fprintf(stderr, "hhpc: XGrabPointer: invalid time, exiting\n");
                 return 0;
 
             default:
-                fprintf(stderr, "XGrabPointer: could not grab mouse pointer (%d), exiting\n", rc);
+                fprintf(stderr, "hhpc: XGrabPointer: could not grab mouse pointer (%d), exiting\n", rc);
                 return 0;
         }
     }
@@ -166,7 +166,7 @@ static void waitForMotion(Display *dpy, Window win, int timeout) {
     working = 1;
 
     if (!setupSignals()) {
-        fprintf(stderr, "could not register signals, program will not exit cleanly\n");
+        fprintf(stderr, "hhpc: could not register signals, program will not exit cleanly\n");
     }
 
     while (working) {
@@ -181,7 +181,7 @@ static void waitForMotion(Display *dpy, Window win, int timeout) {
         ready = select(xfd + 1, &fds, NULL, NULL, NULL);
 
         if (ready > 0) {
-            if (gVerbose) printf("event received\n");
+            if (gVerbose) printf("hhpc: event received\n");
 
             /* event received, release mouse, sleep, and try to grab again */
             XUngrabPointer(dpy, CurrentTime);
@@ -191,20 +191,18 @@ static void waitForMotion(Display *dpy, Window win, int timeout) {
                 /* XNextEvent(dpy, &event); */
                 XMaskEvent(dpy, mask, &event);
 
-                if (gVerbose) printf("draining event\n");
+                if (gVerbose) printf("hhpc: draining event\n");
             }
 
-            if (gVerbose) printf("ungrabbing and sleeping\n");
+            if (gVerbose) printf("hhpc: ungrabbing and sleeping\n");
 
             delay(timeout, 0);
         }
         else if (ready == 0) {
-            if (gVerbose) printf("timeout\n");
+            if (gVerbose) printf("hhpc: timeout\n");
         }
         else {
-            perror("error while select()'ing");
-
-            working = 0;
+            perror("hhpc: error while select()'ing, retrying");
         }
     }
 
@@ -241,12 +239,12 @@ int main(int argc, char *argv[]) {
     int scr        = DefaultScreen(dpy);
     Window rootwin = RootWindow(dpy, scr);
 
-    if (gVerbose) printf("got root window, screen = %d, display = %p, rootwin = %d\n", scr, (void *) dpy, (int) rootwin);
+    if (gVerbose) printf("hhpc: got root window, screen = %d, display = %p, rootwin = %d\n", scr, (void *) dpy, (int) rootwin);
 
     waitForMotion(dpy, rootwin, gIdleTimeout);
 
     XCloseDisplay(dpy);
 
-    if (gVerbose) printf("resources released, exiting...\n");
+    if (gVerbose) printf("hhpc: resources released, exiting...\n");
     return 0;
 }
