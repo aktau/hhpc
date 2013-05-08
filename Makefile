@@ -65,7 +65,7 @@ debug: $(EXECUTABLE)
 release: CFLAGS = $(CFLAGS_COMMON) \
 	-s \
 	-O2 \
-	-march=native \
+	-march=core2 \
 	-ftree-vectorize
 release: $(EXECUTABLE)
 
