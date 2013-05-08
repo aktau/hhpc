@@ -127,7 +127,7 @@ static int grabPointer(Display *dpy, Window win, Cursor cursor, unsigned int mas
 
         switch (rc) {
             case GrabSuccess:
-                if (gVerbose) printf("hhpc: succesfully grabbed mouse pointer\n");
+                if (gVerbose) fprintf(stderr, "hhpc: succesfully grabbed mouse pointer\n");
                 return 1;
 
             case AlreadyGrabbed:
@@ -181,7 +181,7 @@ static void waitForMotion(Display *dpy, Window win, int timeout) {
         ready = select(xfd + 1, &fds, NULL, NULL, NULL);
 
         if (ready > 0) {
-            if (gVerbose) printf("hhpc: event received\n");
+            if (gVerbose) fprintf(stderr, "hhpc: event received\n");
 
             /* event received, release mouse, sleep, and try to grab again */
             XUngrabPointer(dpy, CurrentTime);
@@ -191,15 +191,15 @@ static void waitForMotion(Display *dpy, Window win, int timeout) {
                 /* XNextEvent(dpy, &event); */
                 XMaskEvent(dpy, mask, &event);
 
-                if (gVerbose) printf("hhpc: draining event\n");
+                if (gVerbose) fprintf(stderr, "hhpc: draining event\n");
             }
 
-            if (gVerbose) printf("hhpc: ungrabbing and sleeping\n");
+            if (gVerbose) fprintf(stderr, "hhpc: ungrabbing and sleeping\n");
 
             delay(timeout, 0);
         }
         else if (ready == 0) {
-            if (gVerbose) printf("hhpc: timeout\n");
+            if (gVerbose) fprintf(stderr, "hhpc: timeout\n");
         }
         else {
             perror("hhpc: error while select()'ing, retrying");
@@ -239,12 +239,12 @@ int main(int argc, char *argv[]) {
     int scr        = DefaultScreen(dpy);
     Window rootwin = RootWindow(dpy, scr);
 
-    if (gVerbose) printf("hhpc: got root window, screen = %d, display = %p, rootwin = %d\n", scr, (void *) dpy, (int) rootwin);
+    if (gVerbose) fprintf(stderr, "hhpc: got root window, screen = %d, display = %p, rootwin = %d\n", scr, (void *) dpy, (int) rootwin);
 
     waitForMotion(dpy, rootwin, gIdleTimeout);
 
     XCloseDisplay(dpy);
 
-    if (gVerbose) printf("hhpc: resources released, exiting...\n");
+    if (gVerbose) fprintf(stderr, "hhpc: resources released, exiting...\n");
     return 0;
 }
