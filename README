@@ -28,9 +28,12 @@ Build dependencies
 Building
 ========
 
-after cloning this repo, cd into its directory and perform:
+To get the dependencies on a debian/ubuntu/...-derivative, simply perform:
 
 $ sudo apt-get install make pkg-config gcc libc6-dev libx11-dev
+
+then after cloning this repo, cd into its directory and execute:
+
 $ make release
 
 if everything goes well, there should appear a hhpc executable in the current directory.
