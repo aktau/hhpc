@@ -13,8 +13,8 @@ Running
   -i <seconds>: amount of time to wait before hiding the cursor
   -v: be verbose
 
-Dependencies
-============
+Runtime Dependencies
+====================
 
 A running X server.
 
@@ -30,6 +30,7 @@ Building
 
 after cloning this repo, cd into its directory and perform:
 
+$ sudo apt-get install make pkg-config gcc libc6-dev libx11-dev
 $ make release
 
 if everything goes well, there should appear a hhpc executable in the current directory.
@@ -37,7 +38,7 @@ if everything goes well, there should appear a hhpc executable in the current di
 Todo
 ====
 
-Use XCB instead of Xlib.
+- Use XCB instead of Xlib.
 
 License (3-clause BSD)
 ======================
