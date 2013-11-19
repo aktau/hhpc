@@ -141,6 +141,10 @@ static int grabPointer(Display *dpy, Window win, Cursor cursor, unsigned int mas
                 fprintf(stderr, "hhpc: XGrabPointer: grab was frozen, exiting\n");
                 return 0;
 
+            case GrabNotViewable:
+                fprintf(stderr, "hhpc: XGrabPointer: grab was not viewable, exiting\n");
+                return 0;
+
             case GrabInvalidTime:
                 fprintf(stderr, "hhpc: XGrabPointer: invalid time, exiting\n");
                 return 0;
