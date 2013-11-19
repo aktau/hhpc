@@ -47,7 +47,7 @@ CFLAGS_COMMON = \
 	-Wconversion \
 	-Wno-unused-parameter \
 	-pedantic \
-	-std=c11
+	-std=c99
 
 CC = cc $(CFLAGS)
 

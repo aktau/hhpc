@@ -25,7 +25,7 @@ Build dependencies
 - A gcc-compatible compiler (haven't tested if the flags works with other compilers)
 - pkg-config
 
-NOTE: this code compiles by default with the `-std=c11` switch, for standards-compliance. However, this flag was introduced in gcc 4.7, so you will need at least that version to compile `hhpc`. However, this code will most likely compile just fine without this standards check. So if you don't have a modern compiler, just edit the Makefile and leave out the `-std=c11` flag.
+NOTE: this code compiles by default with the `-std=c99` switch, for standards-compliance. This standard was inplemented completely as of gcc 4.5. However, since hhpc doesn't use any advanced C99 features, it will probably compile with much older versions of gcc as well, though I haven't tried. So if you don't have a modern compiler and the build fails, just edit the Makefile and try leaving out the `-std=c99` flag.
 
 Building
 ========
