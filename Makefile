@@ -54,7 +54,7 @@ CC = cc $(CFLAGS)
 EXECUTABLE = hhpc
 OBJECTS    = hhpc.o
 
-all: debug
+all: release
 
 debug: CFLAGS = $(CFLAGS_COMMON) \
 	-g \
@@ -65,7 +65,6 @@ debug: $(EXECUTABLE)
 release: CFLAGS = $(CFLAGS_COMMON) \
 	-s \
 	-O2 \
-	-march=core2 \
 	-ftree-vectorize
 release: $(EXECUTABLE)
 
