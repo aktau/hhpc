@@ -123,6 +123,9 @@ static int grabPointer(Display *dpy, Window win, Cursor cursor, unsigned int mas
      * or we get an error we can't recover from.
      */
     while (1) {
+        /* some things to try in case of incompatibilities with some WM's:
+         * - try setting the confine_to argument to None, it should make no
+         *   difference */
         rc = XGrabPointer(dpy, win, False, mask, GrabModeAsync, GrabModeAsync, win, cursor, CurrentTime);
 
         switch (rc) {
@@ -138,8 +141,11 @@ static int grabPointer(Display *dpy, Window win, Cursor cursor, unsigned int mas
                 break;
 
             case GrabFrozen:
-                fprintf(stderr, "hhpc: XGrabPointer: grab was frozen, exiting\n");
-                return 0;
+                if (gVerbose) fprintf(stderr, "hhpc: XGrabPointer: grab was frozen, retrying after delay\n");
+
+                delay(0, 500);
+
+                break;
 
             case GrabNotViewable:
                 fprintf(stderr, "hhpc: XGrabPointer: grab was not viewable, exiting\n");
@@ -160,7 +166,8 @@ static void waitForMotion(Display *dpy, Window win, int timeout) {
     int ready = 0;
     int xfd   = ConnectionNumber(dpy);
 
-    unsigned int mask = PointerMotionMask | ButtonPressMask; /* ButtonPressMask */
+    /* alternatively: ... | FocusChangeMask | EnterWindowMask | LeaveWindowMask | ButtonReleaseMask */
+    unsigned int mask = PointerMotionMask | ButtonPressMask;
 
     fd_set fds;
 
