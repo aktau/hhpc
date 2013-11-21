@@ -29,9 +29,7 @@
 # $^ The names of all the prerequisite files (space separated)
 # $* The stem (the bit which matches the % wildcard in the rule definition.
 
-CFLAGS_COMMON = \
-	-D_XOPEN_SOURCE \
-	-D_POSIX_C_SOURCE=200809L \
+WARN ?= \
 	-Wall \
 	-Wextra \
 	-Wcast-align \
@@ -46,33 +44,40 @@ CFLAGS_COMMON = \
 	-Wstrict-overflow=5 \
 	-Wconversion \
 	-Wno-unused-parameter \
+
+CFLAGS_COMMON ?= \
+	-D_XOPEN_SOURCE \
+	-D_POSIX_C_SOURCE=200809L \
 	-pedantic \
 	-std=c99
 
-CC = cc $(CFLAGS)
+CFLAGS ?= $(CFLAGS_COMMON)
 
-EXECUTABLE = hhpc
-OBJECTS    = hhpc.o
+CC ?= cc $(CFLAGS)
+
+EXECUTABLE := hhpc
+OBJECTS    := hhpc.o
 
 all: release
 
-debug: CFLAGS = $(CFLAGS_COMMON) \
+debug: CFLAGS += $(WARN) \
 	-g \
 	-O \
 	-DDEBUG
 debug: $(EXECUTABLE)
 
-release: CFLAGS = $(CFLAGS_COMMON) \
+release: CFLAGS += \
 	-s \
 	-O2 \
-	-ftree-vectorize
+	-ftree-vectorize \
+	-DNDEBUG
 release: $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJECTS)
-	$(CC) $(shell pkg-config --libs x11) -o $@ $^
+	$(CC) $(shell pkg-config --libs x11) -o $@ $^ $(CFLAGS)
 
 %.o: %.c
-	$(CC) $(shell pkg-config --cflags x11) -c $<
+	$(CC) $(shell pkg-config --cflags x11) -c $< $(CFLAGS)
 
 clean:
 	rm -f $(EXECUTABLE) $(OBJECTS)
