@@ -122,7 +122,7 @@ static int grabPointer(Display *dpy, Window win, Cursor cursor, unsigned int mas
      * retry until we actually get the pointer (with a suitable delay)
      * or we get an error we can't recover from.
      */
-    while (1) {
+    while (working) {
         /* some things to try in case of incompatibilities with some WM's:
          * - try setting the confine_to argument to None, it should make no
          *   difference */
@@ -160,6 +160,8 @@ static int grabPointer(Display *dpy, Window win, Cursor cursor, unsigned int mas
                 return 0;
         }
     }
+
+    return 0;
 }
 
 static void waitForMotion(Display *dpy, Window win, int timeout) {
