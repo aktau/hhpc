@@ -42,7 +42,7 @@
 static int gIdleTimeout = 1;
 static int gVerbose     = 0;
 
-static sig_atomic_t working;
+static volatile sig_atomic_t working;
 
 static void signalHandler(int signo) {
     working = 0;
