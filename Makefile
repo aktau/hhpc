@@ -69,7 +69,6 @@ debug: $(EXECUTABLE)
 release: CFLAGS += \
 	-s \
 	-O2 \
-	-ftree-vectorize \
 	-DNDEBUG
 release: $(EXECUTABLE)
 
