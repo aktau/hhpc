@@ -104,7 +104,9 @@ static void delay(time_t sec, long msec) {
  */
 static Cursor nullCursor(Display *dpy, Drawable dw) {
     XColor color  = { 0 };
-    Pixmap pixmap = XCreatePixmap(dpy, dw, 1, 1, 1);
+    const char data[] = { 0 };
+    Pixmap pixmap = XCreateBitmapFromData(dpy, dw, data, 1, 1);
+    /* Pixmap pixmap = XCreatePixmap(dpy, dw, 1, 1, 1); */
     Cursor cursor = XCreatePixmapCursor(dpy, pixmap, pixmap, &color, &color, 0, 0);
 
     XFreePixmap(dpy, pixmap);
