@@ -248,7 +248,12 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    Display *dpy   = XOpenDisplay(NULL);
+    Display *dpy = XOpenDisplay(NULL);
+    if (!dpy) {
+        fprintf(stderr, "hhpc: could not open display, check if your X server is running and/or the DISPLAY environment value is set\n");
+        return 1;
+    }
+
     int scr        = DefaultScreen(dpy);
     Window rootwin = RootWindow(dpy, scr);
 
