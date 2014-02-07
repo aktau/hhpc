@@ -125,10 +125,7 @@ static int grabPointer(Display *dpy, Window win, Cursor cursor, unsigned int mas
      * or we get an error we can't recover from.
      */
     while (working) {
-        /* some things to try in case of incompatibilities with some WM's:
-         * - try setting the confine_to argument to None, it should make no
-         *   difference */
-        rc = XGrabPointer(dpy, win, False, mask, GrabModeAsync, GrabModeAsync, win, cursor, CurrentTime);
+        rc = XGrabPointer(dpy, win, True, mask, GrabModeSync, GrabModeAsync, None, cursor, CurrentTime);
 
         switch (rc) {
             case GrabSuccess:
@@ -189,6 +186,12 @@ static void waitForMotion(Display *dpy, Window win, int timeout) {
             return;
         }
 
+        XAllowEvents(dpy, SyncPointer, CurrentTime);
+
+        /* syncing is necessary, otherwise the X11 FD will never receive an
+         * event (and thus will never be ready, strangely enough */
+        XSync(dpy, False);
+
         /* add the X11 fd to the fdset so we can poll/select on it */
         FD_ZERO(&fds);
         FD_SET(xfd, &fds);
@@ -196,20 +199,18 @@ static void waitForMotion(Display *dpy, Window win, int timeout) {
         ready = select(xfd + 1, &fds, NULL, NULL, NULL);
 
         if (ready > 0) {
-            if (gVerbose) fprintf(stderr, "hhpc: event received\n");
+            if (gVerbose) fprintf(stderr, "hhpc: event received, ungrabbing and sleeping\n");
 
-            /* event received, release mouse, sleep, and try to grab again */
+            /* event received, release mouse, drain, sleep, and try to grab again */
+            XAllowEvents(dpy, ReplayPointer, CurrentTime);
             XUngrabPointer(dpy, CurrentTime);
 
             /* drain events */
             while (XPending(dpy)) {
-                /* XNextEvent(dpy, &event); */
                 XMaskEvent(dpy, mask, &event);
 
                 if (gVerbose) fprintf(stderr, "hhpc: draining event\n");
             }
-
-            if (gVerbose) fprintf(stderr, "hhpc: ungrabbing and sleeping\n");
 
             delay(timeout, 0);
         }
