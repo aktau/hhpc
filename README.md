@@ -8,10 +8,12 @@ I guess one of the main advantages would be that you don't need haskell-platform
 Running
 =======
 
+```sh
 ./hhpc <options>
 
   -i <seconds>: amount of time to wait before hiding the cursor
   -v: be verbose
+```
 
 Runtime Dependencies
 ====================
@@ -38,11 +40,17 @@ Building
 
 To get the dependencies on a debian/ubuntu/...-derivative, simply perform:
 
+```sh
 $ sudo apt-get install make pkg-config gcc libc6-dev libx11-dev
+```
 
-then after cloning this repo, cd into its directory and execute:
+then clone and build it:
 
-$ make release
+```sh
+$ git clone ...
+$ cd hhpc
+$ make
+```
 
 if everything goes well, there should appear a hhpc executable in the current directory.
 
@@ -50,6 +58,18 @@ Todo
 ====
 
 - Use XCB instead of Xlib.
+
+Changelog
+=========
+
+v0.3
+----
+- Use sync grabbing and make the X11 server replay the drained pointer
+  events. This allows clicking while the pointer is hidden, which will
+  henceforth register the click to the underlying window. **NOTE**: if this
+  is undesired behaviour for some, please log an issue and I will reinstate
+  the old behaviour with a commandline switch.
+- Minor code, comments and output cleanup
 
 License (3-clause BSD)
 ======================
