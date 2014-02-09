@@ -215,7 +215,7 @@ static void waitForMotion(Display *dpy, Window win, int timeout) {
             if (gVerbose) fprintf(stderr, "hhpc: timeout\n");
         }
         else {
-            perror("hhpc: error while select()'ing, retrying");
+            if (working) perror("hhpc: error while select()'ing");
         }
     }
 
@@ -248,10 +248,18 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    char *displayName = getenv("DISPLAY");
+
     Display *dpy = XOpenDisplay(NULL);
     if (!dpy) {
-        fprintf(stderr, "hhpc: could not open display, check if your X server is running and/or the DISPLAY environment value is set\n");
-        return 1;
+        if (!displayName || strlen(displayName) == 0) {
+            fprintf(stderr, "hhpc: could not open display, DISPLAY environment variable not set, are you sure the X server is started?\n");
+            return 2;
+        }
+        else {
+            fprintf(stderr, "hhpc: could not open display %s, check if your X server is running and/or the DISPLAY environment value is correct\n", displayName);
+            return 1;
+        }
     }
 
     int scr        = DefaultScreen(dpy);
@@ -263,6 +271,5 @@ int main(int argc, char *argv[]) {
 
     XCloseDisplay(dpy);
 
-    if (gVerbose) fprintf(stderr, "hhpc: resources released, exiting...\n");
     return 0;
 }
