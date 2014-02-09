@@ -51,7 +51,7 @@ static void signalHandler(int signo) {
 static int setupSignals() {
     struct sigaction act;
 
-    memset(&act, 0, sizeof(struct sigaction));
+    memset(&act, 0, sizeof(act));
 
     /* Use the sa_sigaction field because the handles has two additional parameters */
     act.sa_handler = signalHandler;
@@ -105,8 +105,8 @@ static void delay(time_t sec, long msec) {
 static Cursor nullCursor(Display *dpy, Drawable dw) {
     XColor color  = { 0 };
     const char data[] = { 0 };
+
     Pixmap pixmap = XCreateBitmapFromData(dpy, dw, data, 1, 1);
-    /* Pixmap pixmap = XCreatePixmap(dpy, dw, 1, 1, 1); */
     Cursor cursor = XCreatePixmapCursor(dpy, pixmap, pixmap, &color, &color, 0, 0);
 
     XFreePixmap(dpy, pixmap);
@@ -120,10 +120,8 @@ static Cursor nullCursor(Display *dpy, Drawable dw) {
 static int grabPointer(Display *dpy, Window win, Cursor cursor, unsigned int mask) {
     int rc;
 
-    /**
-     * retry until we actually get the pointer (with a suitable delay)
-     * or we get an error we can't recover from.
-     */
+    /* retry until we actually get the pointer (with a suitable delay)
+     * or we get an error we can't recover from. */
     while (working) {
         rc = XGrabPointer(dpy, win, True, mask, GrabModeSync, GrabModeAsync, None, cursor, CurrentTime);
 
@@ -134,16 +132,12 @@ static int grabPointer(Display *dpy, Window win, Cursor cursor, unsigned int mas
 
             case AlreadyGrabbed:
                 if (gVerbose) fprintf(stderr, "hhpc: XGrabPointer: already grabbed mouse pointer, retrying with delay\n");
-
                 delay(0, 500);
-
                 break;
 
             case GrabFrozen:
                 if (gVerbose) fprintf(stderr, "hhpc: XGrabPointer: grab was frozen, retrying after delay\n");
-
                 delay(0, 500);
-
                 break;
 
             case GrabNotViewable:
@@ -167,8 +161,7 @@ static void waitForMotion(Display *dpy, Window win, int timeout) {
     int ready = 0;
     int xfd   = ConnectionNumber(dpy);
 
-    /* alternatively: ... | FocusChangeMask | EnterWindowMask | LeaveWindowMask | ButtonReleaseMask */
-    unsigned int mask = PointerMotionMask | ButtonPressMask;
+    const unsigned int mask = PointerMotionMask | ButtonPressMask;
 
     fd_set fds;
 
@@ -181,27 +174,31 @@ static void waitForMotion(Display *dpy, Window win, int timeout) {
         fprintf(stderr, "hhpc: could not register signals, program will not exit cleanly\n");
     }
 
-    while (working) {
-        if (!grabPointer(dpy, win, emptyCursor, mask)) {
-            return;
-        }
-
+    while (working && grabPointer(dpy, win, emptyCursor, mask)) {
+        /* we grab in sync mode, which stops pointer events from processing,
+         * so we explicitly have to re-allow it with XAllowEvents. The old
+         * method was to just grab in async mode so we wouldn't need this,
+         * but that disables replaying the pointer events */
         XAllowEvents(dpy, SyncPointer, CurrentTime);
 
         /* syncing is necessary, otherwise the X11 FD will never receive an
-         * event (and thus will never be ready, strangely enough */
+         * event (and thus will never be ready, strangely enough) */
         XSync(dpy, False);
 
         /* add the X11 fd to the fdset so we can poll/select on it */
         FD_ZERO(&fds);
         FD_SET(xfd, &fds);
 
+        /* we poll on the X11 fd to see if an event has come in, select()
+         * is interruptible by signals, which allows ctrl+c to work. If we
+         * were to just use XNextEvent() (which blocks), ctrl+c would not
+         * work. */
         ready = select(xfd + 1, &fds, NULL, NULL, NULL);
 
         if (ready > 0) {
             if (gVerbose) fprintf(stderr, "hhpc: event received, ungrabbing and sleeping\n");
 
-            /* event received, release mouse, drain, sleep, and try to grab again */
+            /* event received, replay event, release mouse, drain, sleep, regrab */
             XAllowEvents(dpy, ReplayPointer, CurrentTime);
             XUngrabPointer(dpy, CurrentTime);
 
