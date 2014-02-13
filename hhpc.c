@@ -157,11 +157,27 @@ static int grabPointer(Display *dpy, Window win, Cursor cursor, unsigned int mas
     return 0;
 }
 
+/* get the window that currently has focus */
+static Window focusWindow(Display *dpy) {
+    int revertTo;
+    Window win;
+
+    XGetInputFocus(dpy, &win, &revertTo);
+
+    return win;
+}
+
 static void waitForMotion(Display *dpy, Window win, int timeout) {
-    int ready = 0;
-    int xfd   = ConnectionNumber(dpy);
+    int grabbed = 0;
+    int ready   = 0;
+    int xfd     = ConnectionNumber(dpy);
 
     const unsigned int mask = PointerMotionMask | ButtonPressMask;
+
+    const struct timeval origtv = {
+        .tv_sec = timeout,
+        .tv_usec = 0
+    };
 
     fd_set fds;
 
@@ -174,17 +190,8 @@ static void waitForMotion(Display *dpy, Window win, int timeout) {
         fprintf(stderr, "hhpc: could not register signals, program will not exit cleanly\n");
     }
 
-    while (working && grabPointer(dpy, win, emptyCursor, mask)) {
-        /* we grab in sync mode, which stops pointer events from processing,
-         * so we explicitly have to re-allow it with XAllowEvents. The old
-         * method was to just grab in async mode so we wouldn't need this,
-         * but that disables replaying the pointer events */
-        XAllowEvents(dpy, SyncPointer, CurrentTime);
-
-        /* syncing is necessary, otherwise the X11 FD will never receive an
-         * event (and thus will never be ready, strangely enough) */
-        XSync(dpy, False);
-
+    XSelectInput(dpy, win, PointerMotionMask);
+    while (working) {
         /* add the X11 fd to the fdset so we can poll/select on it */
         FD_ZERO(&fds);
         FD_SET(xfd, &fds);
@@ -192,15 +199,27 @@ static void waitForMotion(Display *dpy, Window win, int timeout) {
         /* we poll on the X11 fd to see if an event has come in, select()
          * is interruptible by signals, which allows ctrl+c to work. If we
          * were to just use XNextEvent() (which blocks), ctrl+c would not
-         * work. */
-        ready = select(xfd + 1, &fds, NULL, NULL, NULL);
+         * work.
+         *
+         * linux modifies the timeval argument, others UNIXes do not,
+         * so we use a throwaway copy. */
+        struct timeval tv = origtv;
+        ready = select(xfd + 1, &fds, NULL, NULL, grabbed ? NULL : &tv);
 
         if (ready > 0) {
-            if (gVerbose) fprintf(stderr, "hhpc: event received, ungrabbing and sleeping\n");
+            if (grabbed) {
+                if (gVerbose) fprintf(stderr, "hhpc: event received while grabbing, ungrabbing and sleeping\n");
 
-            /* event received, replay event, release mouse, drain, sleep, regrab */
-            XAllowEvents(dpy, ReplayPointer, CurrentTime);
-            XUngrabPointer(dpy, CurrentTime);
+                /* event received, replay event, release mouse, drain, sleep, regrab */
+                XAllowEvents(dpy, ReplayPointer, CurrentTime);
+                XUngrabPointer(dpy, CurrentTime);
+                grabbed = 0;
+
+                XSelectInput(dpy, focusWindow(dpy), PointerMotionMask);
+            }
+            else {
+                if (gVerbose) fprintf(stderr, "hhpc: event received while not grabbing, time reset\n");
+            }
 
             /* drain events */
             while (XPending(dpy)) {
@@ -208,11 +227,31 @@ static void waitForMotion(Display *dpy, Window win, int timeout) {
 
                 if (gVerbose) fprintf(stderr, "hhpc: draining event\n");
             }
-
-            delay(timeout, 0);
         }
         else if (ready == 0) {
-            if (gVerbose) fprintf(stderr, "hhpc: timeout\n");
+            if (!grabbed) {
+                /* if we don't receive any mouse in <timeout> seconds,
+                 * we grab the pointer and thus hide it */
+                if (gVerbose) fprintf(stderr, "hhpc: timeout, grabbing\n");
+
+                grabbed = grabPointer(dpy, win, emptyCursor, mask);
+
+                /* if we could not grab, quit */
+                if (!grabbed) break;
+
+                /* we grab in sync mode, which stops pointer events from processing,
+                 * so we explicitly have to re-allow it with XAllowEvents. The old
+                 * method was to just grab in async mode so we wouldn't need this,
+                 * but that disables replaying the pointer events */
+                XAllowEvents(dpy, SyncPointer, CurrentTime);
+
+                /* syncing is necessary, otherwise the X11 FD will never receive an
+                 * event (and thus will never be ready, strangely enough) */
+                XSync(dpy, False);
+            }
+            else {
+                if (gVerbose) fprintf(stderr, "hhpc: regular timeout\n");
+            }
         }
         else {
             if (working) perror("hhpc: error while select()'ing");
