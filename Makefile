@@ -73,10 +73,10 @@ release: CFLAGS += \
 release: $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJECTS)
-	$(CC) $(shell pkg-config --libs x11) -o $@ $^ $(CFLAGS)
+	$(CC) -o $@ $^ $(shell pkg-config --libs x11) $(CFLAGS)
 
 %.o: %.c
-	$(CC) $(shell pkg-config --cflags x11) -c $< $(CFLAGS)
+	$(CC) -c $< $(shell pkg-config --cflags x11) $(CFLAGS)
 
 clean:
 	rm -f $(EXECUTABLE) $(OBJECTS)
