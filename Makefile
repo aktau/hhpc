@@ -86,3 +86,5 @@ install:
 
 clean:
 	rm -f $(EXECUTABLE) $(OBJECTS)
+
+.PHONY: all install clean release debug
