@@ -78,5 +78,11 @@ $(EXECUTABLE): $(OBJECTS)
 %.o: %.c
 	$(CC) -c $< $(shell pkg-config --cflags x11) $(CFLAGS)
 
+install:
+	@echo installing executable file to ${DESTDIR}${PREFIX}/bin
+	@mkdir -p ${DESTDIR}${PREFIX}/bin
+	@cp -f hhpc ${DESTDIR}${PREFIX}/bin
+	@chmod 755 ${DESTDIR}${PREFIX}/bin/hhpc
+
 clean:
 	rm -f $(EXECUTABLE) $(OBJECTS)
