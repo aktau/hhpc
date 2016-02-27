@@ -16,8 +16,7 @@ X11 function. Then, it waits for the X server to notify it when a user
 tries to move or click the pointer. At this point, hhpc relinquishes
 control with `XUngrabPointer`, replays the action the user just tried to
 execute and waits for the specified number of seconds (flag `-i`) before
-trying to grab the pointer and hide it again. As soon as movement is
-detected.
+trying to grab the pointer and hide it again.
 
 Running
 -------
@@ -54,7 +53,7 @@ leaving out the `-std=c99` flag.
 Building
 --------
 
-To get the dependencies on a debian and derivatives.
+To get the dependencies on Debian and derivatives.
 
 ```sh
 $ sudo apt-get install make pkg-config gcc libc6-dev libx11-dev
