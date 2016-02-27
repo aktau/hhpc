@@ -1,12 +1,26 @@
 hhpc
 ====
 
-This is a clone of the hhp program from xmonad-utils. I found that after a while for some reason the original hhp stopped hiding my mouse pointer, so I recreated it in C so as to be able to debug it better.
+hhpc(1) is a utility that hides the mouse pointer in X11. The method it
+uses to hide the cursor was taken from the hhp program found in
+xmonad-utils. I found that after a while for some reason the original
+hhp stopped hiding my mouse pointer, so I recreated it in C to make it
+easier to debug. Should `hhpc` not work out for you, `unclutter` is a
+good alternative. I created `hhpc` because `unclutter` doesn't seem to
+interoperate properly with hardware accelerated surfaces like those of
+video players using VAAPI.
 
-I guess one of the main advantages would be that you don't need haskell-platform to compile and run it, just gcc, the X11 development libraries, pkg-config and make. Also you'll save about 750kb of memory. The idle time is also configurable instead of fixed.
+It functions by grabbing your mouse pointer at startup and replacing its
+bitmap with an empty one (thus hiding it). It uses the `XGrabPointer`
+X11 function. Then, it waits for the X server to notify it when a user
+tries to move or click the pointer. At this point, hhpc relinquishes
+control with `XUngrabPointer`, replays the action the user just tried to
+execute and waits for the specified number of seconds (flag `-i`) before
+trying to grab the pointer and hide it again. As soon as movement is
+detected.
 
 Running
-=======
+-------
 
 ```sh
 ./hhpc <options>
@@ -16,35 +30,37 @@ Running
 ```
 
 Runtime Dependencies
-====================
+--------------------
 
 A running X server.
 
 Build dependencies
-==================
+------------------
 
 - X.org development files
-- A gcc-compatible compiler (haven't tested if the flags works with other compilers)
+- A gcc-compatible compiler (haven't tested if the flags works with
+  other compilers)
 - pkg-config
 
 NOTE: this code compiles by default with the `-std=c99` switch, for
 standards-compliance. This standard was implemented completely as of gcc
-4.5, but has been quite functional for a long time before that. So chances
-are it will compile just fine. However, since hhpc doesn't use any advanced
-C99 features, it will probably compile with much older versions of gcc as
-well, though I haven't tried. So if you have an ancient compiler and the
-build fails, just edit the Makefile and try leaving out the `-std=c99` flag.
+4.5, but has been quite functional for a long time before that. So
+chances are it will compile just fine. However, since hhpc doesn't use
+any advanced C99 features, it will probably compile with much older
+versions of gcc as well, though I haven't tried. So if you have an
+ancient compiler and the build fails, just edit the Makefile and try
+leaving out the `-std=c99` flag.
 
 Building
-========
+--------
 
-To get the dependencies on a debian/ubuntu/...-derivative, simply perform:
+To get the dependencies on a debian and derivatives.
 
 ```sh
 $ sudo apt-get install make pkg-config gcc libc6-dev libx11-dev
 ```
 
-then clone and build it:
+Then clone and build it.
 
 ```sh
 $ git clone ...
@@ -52,27 +68,28 @@ $ cd hhpc
 $ make
 ```
 
-if everything goes well, there should appear a hhpc executable in the current directory.
+If everything goes well, there should appear a hhpc executable in the
+current directory.
 
 Todo
-====
+----
 
 - Use XCB instead of Xlib.
 
 Changelog
-=========
+---------
 
-v0.3
-----
+### v0.3
+
 - Use sync grabbing and make the X11 server replay the drained pointer
   events. This allows clicking while the pointer is hidden, which will
-  henceforth register the click to the underlying window. **NOTE**: if this
-  is undesired behaviour for some, please log an issue and I will reinstate
-  the old behaviour with a commandline switch.
+  henceforth register the click to the underlying window. **NOTE**: if
+  this is undesired behaviour for some, please log an issue and I will
+  reinstate the old behaviour with a commandline switch.
 - Minor code, comments and output cleanup
 
 License (3-clause BSD)
-======================
+----------------------
 
 Copyright (c) 2013 Nicolas Hillegeer <nicolas at hillegeer dot com>
 All rights reserved.
