@@ -50,6 +50,10 @@ versions of gcc as well, though I haven't tried. So if you have an
 ancient compiler and the build fails, just edit the Makefile and try
 leaving out the `-std=c99` flag.
 
+Installing
+---------
+hhpc(1) is available in the AUR: [hhpc-git](https://aur.archlinux.org/packages/hhpc-git/).
+
 Building
 --------
 
