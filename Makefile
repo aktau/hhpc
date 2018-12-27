@@ -55,8 +55,11 @@ CFLAGS ?= $(CFLAGS_COMMON)
 
 CC ?= cc $(CFLAGS)
 
-EXECUTABLE := hhpc
-OBJECTS    := hhpc.o
+EXECUTABLE := xhhpc
+OBJECTS    := xhhpc.o
+
+PREFIX  = /usr/local
+INSTALL = install
 
 all: release
 
@@ -79,10 +82,10 @@ $(EXECUTABLE): $(OBJECTS)
 	$(CC) -c $< $(shell pkg-config --cflags x11) $(CFLAGS)
 
 install:
-	@echo installing executable file to ${DESTDIR}${PREFIX}/bin
-	@mkdir -p ${DESTDIR}${PREFIX}/bin
-	@cp -f hhpc ${DESTDIR}${PREFIX}/bin
-	@chmod 755 ${DESTDIR}${PREFIX}/bin/hhpc
+	$(INSTALL) -d $(PREFIX)/bin
+	$(INSTALL) -m 0755 $(EXECUTABLE) $(PREFIX)/bin
+	$(INSTALL) -d $(PREFIX)/share/man/man1
+	$(INSTALL) -m 0644 $(EXECUTABLE).1 $(PREFIX)/share/man/man1
 
 clean:
 	rm -f $(EXECUTABLE) $(OBJECTS)

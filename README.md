@@ -1,12 +1,12 @@
-hhpc
-====
+xhhpc
+=====
 
-hhpc(1) is a utility that hides the mouse pointer in X11. The method it
+xhhpc(1) is a utility that hides the mouse pointer in X11. The method it
 uses to hide the cursor was taken from the hhp program found in
 xmonad-utils. I found that after a while for some reason the original
 hhp stopped hiding my mouse pointer, so I recreated it in C to make it
-easier to debug. Should `hhpc` not work out for you, `unclutter` is a
-good alternative. I created `hhpc` because `unclutter` doesn't seem to
+easier to debug. Should `xhhpc` not work out for you, `unclutter` is a
+good alternative. I created `xhhpc` because `unclutter` doesn't seem to
 interoperate properly with hardware accelerated surfaces like those of
 video players using VAAPI.
 
@@ -22,7 +22,7 @@ Running
 -------
 
 ```sh
-./hhpc <options>
+./xhhpc <options>
 
   -i <seconds>: amount of time to wait before hiding the cursor
   -v: be verbose
@@ -50,12 +50,6 @@ versions of gcc as well, though I haven't tried. So if you have an
 ancient compiler and the build fails, just edit the Makefile and try
 leaving out the `-std=c99` flag.
 
-Installing
----------
-
-hhpc(1) is available in the AUR:
-[hhpc-git](https://aur.archlinux.org/packages/hhpc-git/).
-
 Building
 --------
 
@@ -69,11 +63,11 @@ Then clone and build it.
 
 ```sh
 $ git clone ...
-$ cd hhpc
+$ cd xhhpc
 $ make
 ```
 
-If everything goes well, there should appear a hhpc executable in the
+If everything goes well, there should appear a xhhpc executable in the
 current directory.
 
 Todo
