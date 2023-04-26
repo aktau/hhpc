@@ -22,9 +22,10 @@ Running
 -------
 
 ```sh
-./hhpc <options>
+./hhpc [options]
 
-  -i <seconds>: amount of time to wait before hiding the cursor
+  -i seconds: amount of time to wait before hiding the cursor
+  -h: display a help message
   -v: be verbose
 ```
 

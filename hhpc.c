@@ -40,6 +40,7 @@
 #include <stdlib.h>
 
 static int gIdleTimeout = 1;
+static int gDisplayHelp = 0;
 static int gVerbose     = 0;
 
 static volatile sig_atomic_t working;
@@ -223,29 +224,75 @@ static void waitForMotion(Display *dpy, Window win, int timeout) {
     XFreeCursor(dpy, emptyCursor);
 }
 
+// Returns 0 on failure, 1 on success
 static int parseOptions(int argc, char *argv[]) {
     int option = 0;
 
-    while ((option = getopt(argc, argv, "i:v")) != -1) {
+    while ((option = getopt(argc, argv, "i:hv")) != -1) {
         switch (option) {
             case 'i': gIdleTimeout = atoi(optarg); break;
+            case 'h': gDisplayHelp = 1; break;
             case 'v': gVerbose = 1; break;
             default: return 0;
         }
     }
 
-    return 1;
+    if (optind == argc) {
+        return 1;
+    }
+    else {
+        fprintf(stderr, "%s: wrong number of arguments -- expected none, found:", argv[0]);
+        for (size_t i = optind; i < argc; ++i) {
+            fprintf(stderr, " '%s'", argv[i]);
+        }
+        fprintf(stderr, "\n");
+
+        return 0;
+    }
 }
 
-static void usage() {
-    printf("hhpc [-i] seconds [-v]\n");
+// Return the length of the longest string in optionDescs.
+// Assumes optionDescs is terminated with a null string "".
+static size_t maxStrlen(char *optionDescs[]) {
+    size_t maxLen = 0;
+    for (size_t i = 0; *optionDescs[i] != '\0'; i += 2) {
+        size_t nextLen = strlen(optionDescs[i]);
+        maxLen = maxLen >= nextLen ? maxLen : nextLen;
+    }
+
+    return maxLen;
+}
+
+static void usage(char *progName) {
+    // Pairs of option forms and their descriptions.
+    // Terminated by a null string "".
+    static char *optionDescs[] = {
+        "-i seconds", "amount of time to wait before hiding the cursor",
+        "-h",         "display this help message",
+        "-v",         "be verbose",
+        ""
+    };
+
+    // This could be made static as well, but since usage() is only ever called
+    // once that's more trouble than it's worth.
+    size_t maxLen = maxStrlen(optionDescs);
+
+    printf("usage: %s [-hv] [-i seconds]\n", progName);
+    for (size_t i = 0; *optionDescs[i] != '\0'; i += 2) {
+        printf("    %-*s    %s\n", maxLen, optionDescs[i], optionDescs[i+1]);
+    }
 }
 
 int main(int argc, char *argv[]) {
     if (!parseOptions(argc, argv)) {
-        usage();
+        usage(argv[0]);
 
         return 1;
+    }
+    if (gDisplayHelp) {
+        usage(argv[0]);
+
+        return 0;
     }
 
     char *displayName = getenv("DISPLAY");
