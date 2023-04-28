@@ -38,6 +38,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
 
 static int gIdleTimeout = 1;
 static int gDisplayHelp = 0;
@@ -91,8 +92,11 @@ static void delay(time_t sec, long msec) {
     sleep.tv_sec  = sec;
     sleep.tv_nsec = (msec % 1000) * 1000 * 1000;
 
-    if (nanosleep(&sleep, NULL) == -1) {
-        signalHandler(0);
+    while (nanosleep(&sleep, &sleep) != 0) {
+        if (errno == EINTR)
+            continue;
+        else
+            signalHandler(0);
     }
 }
 
@@ -159,6 +163,9 @@ static int grabPointer(Display *dpy, Window win, Cursor cursor, unsigned int mas
 }
 
 static void waitForMotion(Display *dpy, Window win, int timeout) {
+    struct timeval sleep;
+    sleep.tv_sec = (timeout <= 1) ? 3 : timeout;
+
     int ready = 0;
     int xfd   = ConnectionNumber(dpy);
 
@@ -194,7 +201,13 @@ static void waitForMotion(Display *dpy, Window win, int timeout) {
          * is interruptible by signals, which allows ctrl+c to work. If we
          * were to just use XNextEvent() (which blocks), ctrl+c would not
          * work. */
-        ready = select(xfd + 1, &fds, NULL, NULL, NULL);
+        if ((ready = select(xfd + 1, &fds, NULL, NULL, &sleep)) == -1) {
+            if (working) perror("hhpc: error while select()'ing");
+        }
+
+        if (ready == 0) {
+            if (gVerbose) fprintf(stderr, "hhpc: timeout\n");
+        }
 
         if (ready > 0) {
             if (gVerbose) fprintf(stderr, "hhpc: event received, ungrabbing and sleeping\n");
@@ -211,12 +224,6 @@ static void waitForMotion(Display *dpy, Window win, int timeout) {
             }
 
             delay(timeout, 0);
-        }
-        else if (ready == 0) {
-            if (gVerbose) fprintf(stderr, "hhpc: timeout\n");
-        }
-        else {
-            if (working) perror("hhpc: error while select()'ing");
         }
     }
 
